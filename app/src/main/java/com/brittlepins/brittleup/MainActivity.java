@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
         } else {
+            signInToDrive();
             if (mAccount != null) {
                 Log.i("Get account from intent", mAccount.getEmail());
             } else {
@@ -33,4 +34,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    private
+
+    void signInToDrive() {}
 }
