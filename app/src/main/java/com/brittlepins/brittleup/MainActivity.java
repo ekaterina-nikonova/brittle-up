@@ -5,10 +5,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 
 public class MainActivity extends AppCompatActivity {
+    static DriveService mDriveService;
     GoogleSignInAccount mAccount;
 
     @Override
@@ -26,16 +28,11 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
         } else {
-            signInToDrive();
-            if (mAccount != null) {
-                Log.i("Get account from intent", mAccount.getEmail());
-            } else {
-                Log.i("Get account from intent", "no account");
-            }
+            Toast.makeText(this, "Hello, " + mAccount.getDisplayName(), Toast.LENGTH_SHORT).show();
         }
     }
 
     private
 
-    void signInToDrive() {}
+    void saveFile() {}
 }
