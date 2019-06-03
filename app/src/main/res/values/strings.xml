@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">Brittle Up</string>
+
+    <string name="sign_in_button_label">Sign in with Google</string>
+    <string name="sign_in_explanation">
+        Brittle Up uploads photos to Google Drive.
+        To make it possible, you need to sign in to your Google account.
+    </string>
+
+    <string name="server_client_id">
+        941430037672-ir93f8fn18q3j2l5n5m1e2cm6vbsa285.apps.googleusercontent.com
+    </string>
 </resources>
