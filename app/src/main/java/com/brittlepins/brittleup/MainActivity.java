@@ -30,6 +30,7 @@ import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -163,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
     GoogleSignInAccount mAccount;
 
     private TextView mLoggedInAsLabel;
+    static private ImageView mUploadIndicatorImageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -171,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
 
         mLoggedInAsLabel = findViewById(R.id.loggedInAsLabel);
         mTextureView = findViewById(R.id.textureView);
+        mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
     }
 
     @Override
@@ -237,9 +240,13 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "Uploading file");
             mDriveService.saveFile(file, content)
                 .addOnSuccessListener(aVoid -> {
-                    // Toast.makeText(this, "Successfully uploaded", Toast.LENGTH_SHORT).show();
+                    mUploadIndicatorImageView.setImageResource(R.drawable.success_icon);
                 })
-                .addOnFailureListener(ex -> Log.e(TAG, "Could not upload file", ex));
+                .addOnFailureListener(ex -> {
+                    mUploadIndicatorImageView.setImageResource(R.drawable.error_icon);
+                    Log.e(TAG, "Could not upload file", ex);
+                    ex.printStackTrace();
+                });
         }
     }
 
