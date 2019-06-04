@@ -229,22 +229,22 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "Creating file");
 
             mDriveService.createFile()
-                    .addOnSuccessListener(file -> saveFile(file, content))
+                    .addOnSuccessListener(file -> saveFile(file.getId(), file.getMimeType(), content))
                     .addOnFailureListener(ex -> Log.e(TAG, "Could not create file", ex));
         }
     }
 
-    static void saveFile(com.google.api.services.drive.model.File file, byte[] content) {
+    static void saveFile(String fileId, String mimeType, byte[] content) {
         final String TAG = "MainActivity saveFile";
         if (mDriveService != null) {
             Log.i(TAG, "Uploading file");
-            mDriveService.saveFile(file, content)
+            mDriveService.saveFile(fileId, mimeType, content)
                 .addOnSuccessListener(aVoid -> {
                     mUploadIndicatorImageView.setImageResource(R.drawable.success_icon);
                 })
                 .addOnFailureListener(ex -> {
                     mUploadIndicatorImageView.setImageResource(R.drawable.error_icon);
-                    mDriveService.deleteFile(file.getId());
+                    mDriveService.deleteFile(fileId);
                     Log.e(TAG, "Could not upload file", ex);
                     ex.printStackTrace();
                 });
@@ -332,7 +332,8 @@ public class MainActivity extends AppCompatActivity {
 
     void runPrecaptureSequence() {
         try {
-            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
             mState = STATE_WAITING_PRECAPTURE;
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
@@ -353,10 +354,11 @@ public class MainActivity extends AppCompatActivity {
 
             CameraCaptureSession.CaptureCallback callback = new CameraCaptureSession.CaptureCallback() {
                 @Override
-                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                               @NonNull CaptureRequest request,
+                                               @NonNull TotalCaptureResult result) {
                     super.onCaptureCompleted(session, request, result);
                     unlockFocus();
-                    // TODO: WRITE TO FILE OR UPLOAD TO DRIVE DIRECTLY
                 }
             };
             mCaptureSession.stopRepeating();

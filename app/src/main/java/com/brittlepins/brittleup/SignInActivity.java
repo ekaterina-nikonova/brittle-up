@@ -64,12 +64,6 @@ public class SignInActivity extends AppCompatActivity {
     void signInToDrive(Intent resultIntent) {
         GoogleSignIn.getSignedInAccountFromIntent(resultIntent)
                 .addOnSuccessListener(account -> {
-                    Toast.makeText(
-                            this,
-                            "Signed in as " + account.getEmail(),
-                            Toast.LENGTH_SHORT
-                    ).show();
-
                     GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
                             this, Collections.singleton(DriveScopes.DRIVE_FILE));
 

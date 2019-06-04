@@ -38,11 +38,10 @@ public class DriveService {
         });
     }
 
-    public Task<Void> saveFile(File file, byte[] content) {
+    public Task<Void> saveFile(String fileId, String mimeType, byte[] content) {
         return Tasks.call(mExecutor, () -> {
-            String mimeType = file.getMimeType();
             mDrive.files().update(
-                    file.getId(),
+                    fileId,
                     new File(),
                     new InputStreamContent(mimeType, new ByteArrayInputStream(content))
             ).execute();
