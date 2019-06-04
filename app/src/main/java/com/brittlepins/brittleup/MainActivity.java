@@ -139,10 +139,19 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 case STATE_WAITING_PRECAPTURE: {
-                    // change state to waiting non pre-capture
+                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                    if (aeState == null ||
+                            aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
+                            aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
+                        mState = STATE_WAITING_NON_PRECAPTURE;
+                    }
                 }
                 case STATE_WAITING_NON_PRECAPTURE: {
-                    // capture still picture
+                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
+                        mState = STATE_PICTURE_TAKEN;
+                        captureStillPicture();
+                    }
                 }
             }
         }
