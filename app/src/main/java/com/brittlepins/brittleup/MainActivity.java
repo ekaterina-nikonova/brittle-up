@@ -15,6 +15,7 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
@@ -23,24 +24,21 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -54,10 +52,10 @@ public class MainActivity extends AppCompatActivity {
     private static final int STATE_PICTURE_TAKEN = 4;
 
     private Handler mBackgroundHandler;
+    private HandlerThread mBackgroundThread;
     private String mCameraId;
     private CameraCaptureSession mCaptureSession;
     private ImageReader mImageReader;
-    private File mFile;
     private TextureView mTextureView;
     private CaptureRequest mPreviewRequest;
     private CaptureRequest.Builder mPreviewRequestBuilder;
@@ -70,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
+            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
     };
 
@@ -125,7 +123,19 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
                 case STATE_WAITING_LOCK: {
-                    // capture still picture or run pre-capture sequence
+                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+                    if (afState == null) {
+                        captureStillPicture();
+                    } else if (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
+                            afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
+                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                        if (aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                            mState = STATE_PICTURE_TAKEN;
+                            captureStillPicture();
+                        } else {
+                            runPrecaptureSequence();
+                        }
+                    }
                 }
                 case STATE_WAITING_PRECAPTURE: {
                     // change state to waiting non pre-capture
@@ -153,8 +163,6 @@ public class MainActivity extends AppCompatActivity {
     GoogleSignInAccount mAccount;
 
     private TextView mLoggedInAsLabel;
-    private TextView mUsernameLabel;
-    private TextView mEmailLabel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -166,8 +174,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onResume() {
+        super.onResume();
         mAccount = getIntent().getParcelableExtra("Google account");
 
         if (mAccount == null) {
@@ -177,6 +185,9 @@ public class MainActivity extends AppCompatActivity {
             String username = mAccount.getDisplayName().isEmpty() ? "Google user" : mAccount.getDisplayName();
             String userLabel = username + "\n" + mAccount.getEmail();
             mLoggedInAsLabel.setText(userLabel);
+
+            startBackgroundThread();
+
             if (mTextureView.isAvailable()) {
                 openCamera(mTextureView.getWidth(), mTextureView.getHeight());
             } else {
@@ -196,35 +207,46 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void upload(View view) {
-        createFile("");
+    public void takePicture(View view) {
+        try {
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+            mState = STATE_WAITING_LOCK;
+            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Could not access camera: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private
 
-    void createFile(String text) {
+    static void createFile(byte[] content) {
+        final String TAG = "MainActivity createFile";
         if (mDriveService != null) {
             Log.i(TAG, "Creating file");
 
-            Date date = new Date();
-            SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-            String filename = formatter.format(date);
-
             mDriveService.createFile()
-                    .addOnSuccessListener(fileId -> saveFile(fileId, filename, text))
+                    .addOnSuccessListener(file -> saveFile(file, content))
                     .addOnFailureListener(ex -> Log.e(TAG, "Could not create file", ex));
         }
     }
 
-    void saveFile(String id, String name, String content) {
+    static void saveFile(com.google.api.services.drive.model.File file, byte[] content) {
+        final String TAG = "MainActivity saveFile";
         if (mDriveService != null) {
             Log.i(TAG, "Uploading file");
-            mDriveService.saveFile(id, name, content)
+            mDriveService.saveFile(file, content)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(MainActivity.this, "Successfully uploaded", Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(this, "Successfully uploaded", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(ex -> Log.e(TAG, "Could not upload file", ex));
         }
+    }
+
+    void startBackgroundThread() {
+        mBackgroundThread = new HandlerThread("CameraBackground");
+        mBackgroundThread.start();
+        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
     }
 
     void openCamera(int width, int height) {
@@ -300,6 +322,56 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    void runPrecaptureSequence() {
+        try {
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+            mState = STATE_WAITING_PRECAPTURE;
+            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Could not access the camera: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    void captureStillPicture() {
+        try {
+            if (mCameraDevice == null) {
+                return;
+            }
+
+            final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.addTarget(mImageReader.getSurface());
+            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+
+            CameraCaptureSession.CaptureCallback callback = new CameraCaptureSession.CaptureCallback() {
+                @Override
+                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                    super.onCaptureCompleted(session, request, result);
+                    unlockFocus();
+                    // TODO: WRITE TO FILE OR UPLOAD TO DRIVE DIRECTLY
+                }
+            };
+            mCaptureSession.stopRepeating();
+            mCaptureSession.abortCaptures();
+            mCaptureSession.capture(captureBuilder.build(), callback, null);
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Could not access the camera: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    void unlockFocus() {
+        try {
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+            mState = STATE_PREVIEW;
+            mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Could not access camera: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     void requestCameraPermission() {
         ActivityCompat.requestPermissions(
                 this,
@@ -341,11 +413,9 @@ public class MainActivity extends AppCompatActivity {
     static class ImageSaver implements Runnable {
         private final String TAG = "ImageSaver";
         private final Image mImage;
-        private final File mFile;
 
-        ImageSaver(Image img, File file) {
+        ImageSaver(Image img) {
             mImage = img;
-            mFile = file;
         }
 
         @Override
@@ -355,9 +425,8 @@ public class MainActivity extends AppCompatActivity {
             buffer.get(bytes);
             FileOutputStream output = null;
             try {
-                output = new FileOutputStream(mFile);
-                output.write(bytes);
-            } catch (IOException e) {
+                createFile(bytes);
+            } catch (Exception e) {
                 Log.e(TAG, "Could not write to output stream: " + e.getMessage());
                 e.printStackTrace();
             } finally {
