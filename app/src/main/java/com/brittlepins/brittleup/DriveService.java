@@ -49,4 +49,11 @@ public class DriveService {
             return null;
         });
     }
+
+    public Task<Void> deleteFile(String fileId) {
+        return Tasks.call(mExecutor, () -> {
+            mDrive.files().delete(fileId).execute();
+            return null;
+        });
+    }
 }

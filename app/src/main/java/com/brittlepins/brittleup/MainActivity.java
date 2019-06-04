@@ -244,6 +244,7 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(ex -> {
                     mUploadIndicatorImageView.setImageResource(R.drawable.error_icon);
+                    mDriveService.deleteFile(file.getId());
                     Log.e(TAG, "Could not upload file", ex);
                     ex.printStackTrace();
                 });
