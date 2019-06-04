@@ -28,6 +28,8 @@ import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -150,11 +152,16 @@ public class MainActivity extends AppCompatActivity {
     static DriveService mDriveService;
     GoogleSignInAccount mAccount;
 
+    private TextView mLoggedInAsLabel;
+    private TextView mUsernameLabel;
+    private TextView mEmailLabel;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mLoggedInAsLabel = findViewById(R.id.loggedInAsLabel);
         mTextureView = findViewById(R.id.textureView);
     }
 
@@ -167,7 +174,9 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
         } else {
-            Toast.makeText(this, "Hello, " + mAccount.getDisplayName(), Toast.LENGTH_SHORT).show();
+            String username = mAccount.getDisplayName().isEmpty() ? "Google user" : mAccount.getDisplayName();
+            String userLabel = username + "\n" + mAccount.getEmail();
+            mLoggedInAsLabel.setText(userLabel);
             if (mTextureView.isAvailable()) {
                 openCamera(mTextureView.getWidth(), mTextureView.getHeight());
             } else {
