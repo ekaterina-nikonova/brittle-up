@@ -1,10 +1,13 @@
 package com.brittlepins.brittleup;
 
+import android.util.Log;
+
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.api.client.http.InputStreamContent;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.FileList;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -53,6 +56,30 @@ public class DriveService {
         return Tasks.call(mExecutor, () -> {
             mDrive.files().delete(fileId).execute();
             return null;
+        });
+    }
+
+    public Task<File> createFolder(String parentId, String name) {
+        return Tasks.call(mExecutor, () -> {
+            String query = "name='"
+                    + name
+                    + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+            FileList result = mDrive.files().list()
+                    .setQ(query)
+                    .setFields("files(id, name)")
+                    .execute();
+
+            if (result.getFiles().isEmpty()) {
+                File metadata = new File()
+                        .setName(name)
+                        .setMimeType("application/vnd.google-apps.folder")
+                        .setParents(Collections.singletonList(parentId));
+                File file = mDrive.files().create(metadata).setFields("id, name").execute();
+                return file;
+            } else {
+                Log.i("CREATE_FOLDER", "Found files: " + result.getFiles().size());
+                return result.getFiles().get(0);
+            }
         });
     }
 }

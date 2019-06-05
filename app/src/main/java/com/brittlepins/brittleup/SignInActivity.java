@@ -76,6 +76,9 @@ public class SignInActivity extends AppCompatActivity {
                     ).setApplicationName("Brittle Up").build();
 
                     MainActivity.mDriveService = new DriveService(drive);
+                    MainActivity.mDriveService.createFolder("root", "Brittle Up")
+                            .addOnSuccessListener(aVoid -> Log.i(TAG, "Created folder"))
+                            .addOnFailureListener(error -> Log.e(TAG, "Could not create folder: " + error.getMessage()));
                 })
         .addOnFailureListener(exception ->
                 Log.e(TAG, "Failed to sign in to Google Drive", exception));
