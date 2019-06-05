@@ -77,7 +77,7 @@ public class SignInActivity extends AppCompatActivity {
 
                     MainActivity.mDriveService = new DriveService(drive);
                     MainActivity.mDriveService.createFolder("root", "Brittle Up")
-                            .addOnSuccessListener(aVoid -> Log.i(TAG, "Created folder"))
+                            .addOnSuccessListener(folder -> MainActivity.mDriveService.setRootFolderId(folder.getId()))
                             .addOnFailureListener(error -> Log.e(TAG, "Could not create folder: " + error.getMessage()));
                 })
         .addOnFailureListener(exception ->

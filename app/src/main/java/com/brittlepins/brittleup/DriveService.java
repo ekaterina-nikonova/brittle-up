@@ -11,14 +11,18 @@ import com.google.api.services.drive.model.FileList;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class DriveService {
     private final Executor mExecutor = Executors.newSingleThreadExecutor();
     private final Drive mDrive;
+    String mUploadFolderId;
+    String mRootFolderId;
 
     public DriveService(Drive drive) {
         mDrive = drive;
@@ -82,4 +86,27 @@ public class DriveService {
             }
         });
     }
+
+    public Task<List<File>> listAllFolders() {
+        return Tasks.call(mExecutor, () -> {
+            List<File> folders = new ArrayList<>();
+            FileList result = mDrive.files().list()
+                    .setQ("mimeType = 'application/vnd.google-apps.folder' and trashed = false and parents='" + mRootFolderId + "'")
+                    .setFields("files(id, name)")
+                    .execute();
+            folders.addAll(result.getFiles());
+            return folders;
+        });
+    }
+
+    public void setRootFolderId(String id) {
+        mRootFolderId = id;
+    }
+
+    private
+
+    void setUploadFolderId(String id) {
+        mUploadFolderId = id;
+    }
+
 }

@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.util.Pair;
 
 import android.Manifest;
 import android.content.Intent;
@@ -35,11 +36,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.api.services.drive.model.File;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -169,8 +173,10 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    static DriveService mDriveService;
     GoogleSignInAccount mAccount;
+    static DriveService mDriveService;
+    private List<Pair<String, String>> mFolders = new ArrayList<>();
+
 
     private TextView mLoggedInAsLabel;
     static private ImageView mUploadIndicatorImageView;
@@ -205,6 +211,15 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
             }
+
+            mDriveService.listAllFolders()
+                .addOnSuccessListener(folders -> {
+                    for (File f: folders) {
+                        mFolders.add(new Pair<>(f.getId(), f.getName()));
+                        Log.i(TAG, "Fetched folder: " + f.getId() + " / " + f.getName());
+                    }
+                })
+                .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
         }
     }
 
