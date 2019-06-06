@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.util.Pair;
 
 import android.Manifest;
 import android.content.Intent;
@@ -31,7 +30,9 @@ import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -45,11 +46,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private final String TAG = "MainActivity";
     private final int CAMERA_PERMISSION_CODE = 1;
     private static final int STATE_PREVIEW = 0;
@@ -179,8 +179,6 @@ public class MainActivity extends AppCompatActivity {
     static DriveService mDriveService;
     private ArrayList<Folder> mFolders = new ArrayList<>();
 
-
-    private TextView mLoggedInAsLabel;
     private Spinner mSpinner;
     static private ImageView mUploadIndicatorImageView;
 
@@ -189,7 +187,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mLoggedInAsLabel = findViewById(R.id.loggedInAsLabel);
         mSpinner = findViewById(R.id.folderSelectionSpinner);
         mTextureView = findViewById(R.id.textureView);
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
@@ -204,10 +201,6 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
         } else {
-            String username = mAccount.getDisplayName().isEmpty() ? "Google user" : mAccount.getDisplayName();
-            String userLabel = username + "\n" + mAccount.getEmail();
-            mLoggedInAsLabel.setText(userLabel);
-
             startBackgroundThread();
 
             if (mTextureView.isAvailable()) {
@@ -216,20 +209,21 @@ public class MainActivity extends AppCompatActivity {
                 mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
             }
 
+            ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
+                    this,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    mFolders
+            );
+            adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+            mSpinner.setAdapter(adapter);
+            mSpinner.setOnItemSelectedListener(this);
+
             mDriveService.listAllFolders()
                 .addOnSuccessListener(folders -> {
-                    mFolders.add(new Folder("add-new-label-id", getString(R.string.add_new_label)));
                     for (File f: folders) {
                         mFolders.add(new Folder(f.getId(), f.getName()));
                     }
-
-                    ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
-                            this,
-                            android.R.layout.simple_spinner_dropdown_item,
-                            mFolders
-                    );
-                    adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
-                    mSpinner.setAdapter(adapter);
+                    adapter.notifyDataSetChanged();
                 })
                 .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
         }
@@ -246,6 +240,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        Log.i(TAG, "On item selected: " + ((Folder) parent.getItemAtPosition(position)).getId());
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+        Log.i(TAG, "Nothing selected.");
+    }
+
     public void takePicture(View view) {
         try {
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
@@ -255,6 +260,11 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "Could not access camera: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public void addLabel(View view) {
+        Intent intent = new Intent(this, AddLabelActivity.class);
+        startActivity(intent);
     }
 
     private
