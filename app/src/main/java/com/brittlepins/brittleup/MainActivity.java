@@ -239,6 +239,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         Log.i(TAG, "On item selected: " + ((Folder) parent.getItemAtPosition(position)).getId());
+        mDriveService.setUploadFolderId(((Folder) parent.getItemAtPosition(position)).getId());
     }
 
     @Override
@@ -493,5 +494,4 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
-
 }

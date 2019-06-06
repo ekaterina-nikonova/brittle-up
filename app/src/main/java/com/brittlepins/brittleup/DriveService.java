@@ -31,7 +31,7 @@ public class DriveService {
     public Task<File> createFile() {
         return Tasks.call(mExecutor, () -> {
             File metadata = new File()
-                    .setParents(Collections.singletonList("root"))
+                    .setParents(Collections.singletonList(mUploadFolderId))
                     .setMimeType("image/jpeg")
                     .setName(String.valueOf(new Date().getTime()));
 
@@ -103,9 +103,7 @@ public class DriveService {
         mRootFolderId = id;
     }
 
-    private
-
-    void setUploadFolderId(String id) {
+    public void setUploadFolderId(String id) {
         mUploadFolderId = id;
     }
 
