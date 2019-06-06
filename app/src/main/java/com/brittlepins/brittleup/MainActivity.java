@@ -31,7 +31,9 @@ import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -175,10 +177,11 @@ public class MainActivity extends AppCompatActivity {
 
     GoogleSignInAccount mAccount;
     static DriveService mDriveService;
-    private List<Pair<String, String>> mFolders = new ArrayList<>();
+    private ArrayList<Folder> mFolders = new ArrayList<>();
 
 
     private TextView mLoggedInAsLabel;
+    private Spinner mSpinner;
     static private ImageView mUploadIndicatorImageView;
 
     @Override
@@ -187,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mLoggedInAsLabel = findViewById(R.id.loggedInAsLabel);
+        mSpinner = findViewById(R.id.folderSelectionSpinner);
         mTextureView = findViewById(R.id.textureView);
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
     }
@@ -214,10 +218,18 @@ public class MainActivity extends AppCompatActivity {
 
             mDriveService.listAllFolders()
                 .addOnSuccessListener(folders -> {
+                    mFolders.add(new Folder("add-new-label-id", getString(R.string.add_new_label)));
                     for (File f: folders) {
-                        mFolders.add(new Pair<>(f.getId(), f.getName()));
-                        Log.i(TAG, "Fetched folder: " + f.getId() + " / " + f.getName());
+                        mFolders.add(new Folder(f.getId(), f.getName()));
                     }
+
+                    ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
+                            this,
+                            android.R.layout.simple_spinner_dropdown_item,
+                            mFolders
+                    );
+                    adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+                    mSpinner.setAdapter(adapter);
                 })
                 .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
         }

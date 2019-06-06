@@ -6,7 +6,8 @@
         Brittle Up uploads photos to Google Drive.
         To make it possible, you need to sign in to your Google account.
     </string>
-    
+
+    <string name="add_new_label">Add new label...</string>
     <string name="logged_in_as_label">Logged in as</string>
 
     <string name="server_client_id">
