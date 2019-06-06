@@ -32,13 +32,10 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.api.services.drive.model.File;
 
 import java.io.FileOutputStream;
@@ -175,7 +172,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
-    GoogleSignInAccount mAccount;
     static DriveService mDriveService;
     private ArrayList<Folder> mFolders = new ArrayList<>();
 
@@ -195,9 +191,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     protected void onResume() {
         super.onResume();
-        mAccount = getIntent().getParcelableExtra("Google account");
 
-        if (mAccount == null) {
+        if (mDriveService == null) {
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
         } else {

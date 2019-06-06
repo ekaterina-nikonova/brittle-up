@@ -7,14 +7,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.Scope;
-import com.google.android.gms.tasks.Task;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.json.gson.GsonFactory;
@@ -40,9 +37,10 @@ public class SignInActivity extends AppCompatActivity {
 
         if (requestCode == RC_SIGN_IN) {
             if (resultCode == Activity.RESULT_OK && resultIntent != null) {
-                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(resultIntent);
                 signInToDrive(resultIntent);
-                returnToMainActivity(task.getResult());
+
+                Intent intent = new Intent(this, MainActivity.class);
+                startActivity(intent);
             }
         }
     }
@@ -82,11 +80,5 @@ public class SignInActivity extends AppCompatActivity {
                 })
         .addOnFailureListener(exception ->
                 Log.e(TAG, "Failed to sign in to Google Drive", exception));
-    }
-
-    void returnToMainActivity(GoogleSignInAccount account) {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("Google account", account);
-        startActivity(intent);
     }
 }
