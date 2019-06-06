@@ -36,6 +36,7 @@ import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.api.services.drive.model.File;
 
 import java.io.FileOutputStream;
@@ -176,6 +177,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private ArrayList<Folder> mFolders = new ArrayList<>();
 
     private Spinner mSpinner;
+    private FloatingActionButton mUploadButton;
     static private ImageView mUploadIndicatorImageView;
 
     @Override
@@ -185,6 +187,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         mSpinner = findViewById(R.id.folderSelectionSpinner);
         mTextureView = findViewById(R.id.textureView);
+        mUploadButton = findViewById(R.id.uploadButton);
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
     }
 
@@ -213,6 +216,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             mSpinner.setAdapter(adapter);
             mSpinner.setOnItemSelectedListener(this);
 
+            mUploadButton.hide();
+
             mDriveService.listAllFolders()
                 .addOnSuccessListener(folders -> {
                     for (File f: folders) {
@@ -238,8 +243,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        Log.i(TAG, "On item selected: " + ((Folder) parent.getItemAtPosition(position)).getId());
         mDriveService.setUploadFolderId(((Folder) parent.getItemAtPosition(position)).getId());
+        if (mDriveService.mUploadFolderId != null) { mUploadButton.show(); }
     }
 
     @Override
@@ -279,7 +284,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     static void saveFile(String fileId, String mimeType, byte[] content) {
         final String TAG = "MainActivity saveFile";
         if (mDriveService != null) {
-            Log.i(TAG, "Uploading file");
             mDriveService.saveFile(fileId, mimeType, content)
                 .addOnSuccessListener(aVoid -> {
                     mUploadIndicatorImageView.setImageResource(R.drawable.success_icon);
