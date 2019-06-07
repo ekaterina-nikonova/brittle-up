@@ -5,30 +5,25 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.Scope;
-import com.google.api.client.extensions.android.http.AndroidHttp;
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.services.drive.Drive;
+
 import com.google.api.services.drive.DriveScopes;
 
-import java.util.Collections;
-
 public class SignInActivity extends AppCompatActivity {
-    private final String TAG = "SignInActivity";
     private final int RC_SIGN_IN = 1;
-    private GoogleSignInClient mGoogleSignInClient;
+    private DriveSignInService mDriveSignIn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_in);
+
+        mDriveSignIn = new DriveSignInService(this);
     }
 
     @Override
@@ -37,7 +32,7 @@ public class SignInActivity extends AppCompatActivity {
 
         if (requestCode == RC_SIGN_IN) {
             if (resultCode == Activity.RESULT_OK && resultIntent != null) {
-                signInToDrive(resultIntent);
+                mDriveSignIn.signInToDrive(resultIntent);
 
                 Intent intent = new Intent(this, MainActivity.class);
                 startActivity(intent);
@@ -51,34 +46,9 @@ public class SignInActivity extends AppCompatActivity {
                 .requestScopes(new Scope(DriveScopes.DRIVE_FILE))
                 .build();
 
-        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+        GoogleSignInClient mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
-    }
-
-    private
-
-    void signInToDrive(Intent resultIntent) {
-        GoogleSignIn.getSignedInAccountFromIntent(resultIntent)
-                .addOnSuccessListener(account -> {
-                    GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
-                            this, Collections.singleton(DriveScopes.DRIVE_FILE));
-
-                    credential.setSelectedAccount(account.getAccount());
-
-                    Drive drive = new Drive.Builder(
-                            AndroidHttp.newCompatibleTransport(),
-                            new GsonFactory(),
-                            credential
-                    ).setApplicationName("Brittle Up").build();
-
-                    MainActivity.mDriveService = new DriveService(drive);
-                    MainActivity.mDriveService.createFolder("root", "Brittle Up")
-                            .addOnSuccessListener(folder -> MainActivity.mDriveService.setRootFolderId(folder.getId()))
-                            .addOnFailureListener(error -> Log.e(TAG, "Could not create folder: " + error.getMessage()));
-                })
-        .addOnFailureListener(exception ->
-                Log.e(TAG, "Failed to sign in to Google Drive", exception));
     }
 }
