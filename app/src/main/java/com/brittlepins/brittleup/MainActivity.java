@@ -220,6 +220,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             mDriveService.listAllFolders()
                 .addOnSuccessListener(folders -> {
+                    mFolders.clear();
                     for (File f: folders) {
                         mFolders.add(new Folder(f.getId(), f.getName()));
                     }
