@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.View;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.Scope;
@@ -57,28 +58,28 @@ public class SignInActivity extends AppCompatActivity {
         startActivityForResult(signInIntent, RC_SIGN_IN);
     }
 
-    private
-
     void signInToDrive(Intent resultIntent) {
         GoogleSignIn.getSignedInAccountFromIntent(resultIntent)
-                .addOnSuccessListener(account -> {
-                    GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
-                            this, Collections.singleton(DriveScopes.DRIVE_FILE));
+                .addOnSuccessListener(account -> driveAuth(account))
+                .addOnFailureListener(exception ->
+                        Log.e(TAG, "Failed to sign in to Google Drive", exception));
+    }
 
-                    credential.setSelectedAccount(account.getAccount());
+    void driveAuth(GoogleSignInAccount account) {
+        GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
+                this, Collections.singleton(DriveScopes.DRIVE_FILE));
 
-                    Drive drive = new Drive.Builder(
-                            AndroidHttp.newCompatibleTransport(),
-                            new GsonFactory(),
-                            credential
-                    ).setApplicationName("Brittle Up").build();
+        credential.setSelectedAccount(account.getAccount());
 
-                    MainActivity.mDriveService = new DriveService(drive);
-                    MainActivity.mDriveService.createFolder("root", "Brittle Up")
-                            .addOnSuccessListener(folder -> MainActivity.mDriveService.setRootFolderId(folder.getId()))
-                            .addOnFailureListener(error -> Log.e(TAG, "Could not create folder: " + error.getMessage()));
-                })
-        .addOnFailureListener(exception ->
-                Log.e(TAG, "Failed to sign in to Google Drive", exception));
+        Drive drive = new Drive.Builder(
+                AndroidHttp.newCompatibleTransport(),
+                new GsonFactory(),
+                credential
+        ).setApplicationName("Brittle Up").build();
+
+        MainActivity.mDriveService = new DriveService(drive);
+        MainActivity.mDriveService.createFolder("root", "Brittle Up")
+                .addOnSuccessListener(folder -> MainActivity.mDriveService.setRootFolderId(folder.getId()))
+                .addOnFailureListener(error -> Log.e(TAG, "Could not create folder: " + error.getMessage()));
     }
 }

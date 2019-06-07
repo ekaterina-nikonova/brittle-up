@@ -36,6 +36,8 @@ import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.api.services.drive.model.File;
 
@@ -195,9 +197,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onResume() {
         super.onResume();
 
-        if (mDriveService == null) {
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        if (account == null) {
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
+        } else if (mDriveService == null) {
+            SignInServices signInServices = new SignInServices(this);
+            signInServices.driveAuth(account);
         } else {
             startBackgroundThread();
 
