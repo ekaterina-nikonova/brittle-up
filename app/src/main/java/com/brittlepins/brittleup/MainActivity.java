@@ -202,8 +202,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
         } else if (mDriveService == null) {
-            SignInServices signInServices = new SignInServices(this);
-            signInServices.driveAuth(account);
+            DriveSignInService driveSignIn = new DriveSignInService(this);
+            driveSignIn.driveAuth(account);
         } else {
             startBackgroundThread();
 

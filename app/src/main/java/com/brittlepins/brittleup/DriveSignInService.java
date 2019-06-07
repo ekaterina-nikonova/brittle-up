@@ -1,8 +1,10 @@
 package com.brittlepins.brittleup;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
@@ -12,16 +14,19 @@ import com.google.api.services.drive.DriveScopes;
 
 import java.util.Collections;
 
-public class SignInServices {
-    private final String TAG = "SignInServices";
+public class DriveSignInService {
+    private final String TAG = "DriveSignInService";
     private Context ctx;
 
-    SignInServices(Context ctx) {
+    DriveSignInService(Context ctx) {
         this.ctx = ctx;
     }
 
-    Context getCtx() {
-        return ctx;
+    void signInToDrive(Intent resultIntent) {
+        GoogleSignIn.getSignedInAccountFromIntent(resultIntent)
+                .addOnSuccessListener(account -> driveAuth(account))
+                .addOnFailureListener(exception ->
+                        Log.e(TAG, "Failed to sign in to Google Drive", exception));
     }
 
     void driveAuth(GoogleSignInAccount account) {
