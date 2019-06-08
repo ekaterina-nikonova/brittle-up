@@ -12,6 +12,7 @@ import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.AdapterView;
