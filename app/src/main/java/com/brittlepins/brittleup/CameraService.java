@@ -1,9 +1,6 @@
 package com.brittlepins.brittleup;
 
-import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -27,8 +24,6 @@ import android.view.TextureView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -45,7 +40,6 @@ public class CameraService {
     private Context ctx;
     private TextureView textureView;
 
-    private final int CAMERA_PERMISSION_CODE = 1;
     private static final int STATE_PREVIEW = 0;
     private static final int STATE_WAITING_LOCK = 1;
     private static final int STATE_WAITING_PRECAPTURE = 2;
@@ -105,7 +99,7 @@ public class CameraService {
         configureTransform(width, height);
 
         try {
-            if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MICROSECONDS)) {
+            if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to unlock the camera.");
             }
             manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
@@ -131,8 +125,8 @@ public class CameraService {
             mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mPreviewRequestBuilder.addTarget(surface);
 
-            mCameraDevice.createCaptureSession(Arrays.asList(
-                surface, mImageReader.getSurface()),
+            mCameraDevice.createCaptureSession(
+                Arrays.asList(surface, mImageReader.getSurface()),
                 new CameraCaptureSession.StateCallback() {
                     @Override
                     public void onConfigured(@NonNull CameraCaptureSession session) {
@@ -178,6 +172,19 @@ public class CameraService {
         }
     }
 
+    void closeCamera() {
+        try {
+            mCameraOpenCloseLock.acquire();
+            if (mCameraDevice != null) {
+                mCameraDevice.close();
+                mCameraDevice = null;
+            }
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Interrupted while closing the camera: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     private
 
     void setUpCameraOutputs(int width, int height) {
@@ -212,7 +219,7 @@ public class CameraService {
 
     void configureTransform(int width, int height) {
         if (textureView == null || mPreviewSize == null) {
-            return;
+            //
         }
     }
 
@@ -324,6 +331,18 @@ public class CameraService {
         mBackgroundThread = new HandlerThread("CameraBackground");
         mBackgroundThread.start();
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+    }
+
+    void stopBackgroundThread() {
+        mBackgroundThread.quitSafely();
+        try {
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Stop background thread interrupted: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private class ImageSaver implements Runnable {
