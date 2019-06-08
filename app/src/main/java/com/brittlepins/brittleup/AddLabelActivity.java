@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 public class AddLabelActivity extends AppCompatActivity {
     private final String TAG = "AddLabelActivity";
@@ -51,11 +52,15 @@ public class AddLabelActivity extends AppCompatActivity {
                 .createFolder(MainActivity.mDriveService.mRootFolderId,
                         mLabelEditText.getText().toString().toLowerCase().trim())
                 .addOnSuccessListener(folder -> {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                    intent.putExtra("folderId", folder.getId());
-                    startActivity(intent);
+                    Toast.makeText(this, "Created label " + folder.getName(), Toast.LENGTH_SHORT).show();
                 })
-                .addOnFailureListener(e -> Log.e(TAG, "Could not create folder: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Could not create label.", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Could not create folder: " + e.getMessage());
+                    e.printStackTrace();
+                });
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        startActivity(intent);
     }
 
     public void cancel(View view) {
