@@ -26,6 +26,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.api.services.drive.model.File;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private final String TAG = "MainActivity";
@@ -69,8 +71,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         mSpinner = findViewById(R.id.folderSelectionSpinner);
         mTextureView = findViewById(R.id.textureView);
-        mUploadButton = findViewById(R.id.uploadButton);
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
+
+        mUploadButton = findViewById(R.id.uploadButton);
+        mUploadButton.hide();
     }
 
     @Override
@@ -78,6 +82,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onResume();
 
         mCameraService = new CameraService(this, mTextureView);
+        mCameraService.startBackgroundThread();
+        if (mTextureView.isAvailable()) {
+            openCamera(mTextureView.getWidth(), mTextureView.getHeight());
+        } else {
+            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+        }
 
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if (account == null) {
@@ -87,14 +97,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             DriveSignInService driveSignIn = new DriveSignInService(this);
             driveSignIn.driveAuth(account);
         } else {
-            mCameraService.startBackgroundThread();
-
-            if (mTextureView.isAvailable()) {
-                openCamera(mTextureView.getWidth(), mTextureView.getHeight());
-            } else {
-                mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
-            }
-
             ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
                     this,
                     android.R.layout.simple_spinner_dropdown_item,
@@ -104,8 +106,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             mSpinner.setAdapter(adapter);
             mSpinner.setOnItemSelectedListener(this);
 
-            mUploadButton.hide();
-
+            mDriveService.setUploadFolderId(null);
             mDriveService.listAllFolders()
                 .addOnSuccessListener(folders -> {
                     mFolders.clear();
@@ -116,6 +117,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 })
                 .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
         }
+    }
+
+    @Override
+    protected void onPause() {
+        mCameraService.closeCamera();
+        mCameraService.stopBackgroundThread();
+        super.onPause();
     }
 
     @Override
@@ -133,7 +141,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         mDriveService.setUploadFolderId(((Folder) parent.getItemAtPosition(position)).getId());
-        if (mDriveService.mUploadFolderId != null) { mUploadButton.show(); }
+        if (mDriveService.mUploadFolderId != null) {
+            mUploadButton.show();
+        } else {
+            mUploadButton.hide();
+        }
     }
 
     @Override

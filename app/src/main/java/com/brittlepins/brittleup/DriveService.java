@@ -1,7 +1,5 @@
 package com.brittlepins.brittleup;
 
-import android.util.Log;
-
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.api.client.http.InputStreamContent;
@@ -81,7 +79,6 @@ public class DriveService {
                 File file = mDrive.files().create(metadata).setFields("id, name").execute();
                 return file;
             } else {
-                Log.i("CREATE_FOLDER", "Found files: " + result.getFiles().size());
                 return result.getFiles().get(0);
             }
         });
