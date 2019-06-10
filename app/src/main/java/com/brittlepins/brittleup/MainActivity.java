@@ -216,6 +216,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         .setNegativeButton(getString(R.string.log_out_dialog_negative), (dialog, which) -> {})
                         .show();
                 return true;
+            case R.id.addLabelMenuItem:
+                Intent intent = new Intent(this, AddLabelActivity.class);
+                startActivity(intent);
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -229,11 +233,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public void takePicture(View view) {
         mCameraService.takePicture();
-    }
-
-    public void addLabel(View view) {
-        Intent intent = new Intent(this, AddLabelActivity.class);
-        startActivity(intent);
     }
 
     private

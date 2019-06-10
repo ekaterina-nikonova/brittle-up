@@ -8,7 +8,7 @@
         app:showAsAction="never"/>
 
     <item
-        android:id="@+id/AddLabelMenuItem"
+        android:id="@+id/addLabelMenuItem"
         android:icon="@android:drawable/ic_menu_add"
         android:title="@string/add_new_label"
         app:showAsAction="ifRoom" />
