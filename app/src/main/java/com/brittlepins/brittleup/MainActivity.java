@@ -97,34 +97,35 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if (account == null) {
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
+        } else {
+            if (mDriveService == null) {
+                DriveSignInService driveSignIn = new DriveSignInService(this);
+                driveSignIn.driveAuth(account);
+            }
+
+            mAccount = account;
+
+            ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
+                    this,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    mFolders
+            );
+            adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+            mSpinner.setAdapter(adapter);
+            mSpinner.setOnItemSelectedListener(this);
+
+            mDriveService.setUploadFolderId(null);
+            mDriveService.listAllFolders()
+                .addOnSuccessListener(folders -> {
+                    mFolders.clear();
+                    for (File f: folders) {
+                        mFolders.add(new Folder(f.getId(), f.getName()));
+                    }
+                    adapter.notifyDataSetChanged();
+                })
+                .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
         }
 
-        if (mDriveService == null) {
-            DriveSignInService driveSignIn = new DriveSignInService(this);
-            driveSignIn.driveAuth(account);
-        }
-
-        mAccount = account;
-
-        ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_spinner_dropdown_item,
-                mFolders
-        );
-        adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
-        mSpinner.setAdapter(adapter);
-        mSpinner.setOnItemSelectedListener(this);
-
-        mDriveService.setUploadFolderId(null);
-        mDriveService.listAllFolders()
-            .addOnSuccessListener(folders -> {
-                mFolders.clear();
-                for (File f: folders) {
-                    mFolders.add(new Folder(f.getId(), f.getName()));
-                }
-                adapter.notifyDataSetChanged();
-            })
-            .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
     }
 
     @Override
