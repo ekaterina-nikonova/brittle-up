@@ -87,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private Toolbar mToolbar;
     private FloatingActionButton mUploadButton;
     static private ImageView mUploadIndicatorImageView;
+    private ArrayAdapter<Folder> mArrayAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +106,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         mTextureView.setOnTouchListener(gestListener);
         setSupportActionBar(mToolbar);
+
+        mArrayAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                mFolders
+        );
+        mArrayAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        mSpinner.setAdapter(mArrayAdapter);
+        mSpinner.setOnItemSelectedListener(this);
     }
 
     @Override
@@ -267,15 +277,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private Task<Void> fetchFolders() {
         return Tasks.call(mExecutor, () -> {
-            ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
-                    this,
-                    android.R.layout.simple_spinner_dropdown_item,
-                    mFolders
-            );
-            adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
-            mSpinner.setAdapter(adapter);
-            mSpinner.setOnItemSelectedListener(this);
-
             mDriveService.setUploadFolderId(null);
             mDriveService.listAllFolders()
                     .addOnSuccessListener(folders -> {
@@ -283,7 +284,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         for (File f: folders) {
                             mFolders.add(new Folder(f.getId(), f.getName()));
                         }
-                        adapter.notifyDataSetChanged();
+                        mArrayAdapter.notifyDataSetChanged();
                     })
                     .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
             return null;
@@ -299,7 +300,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             if (e2.getAxisValue(MotionEvent.AXIS_X) < e1.getAxisValue(MotionEvent.AXIS_X) &&
-                    e1.getAxisValue(MotionEvent.AXIS_Y) - e2.getAxisValue(MotionEvent.AXIS_Y) < 100) {
+                    e1.getAxisValue(MotionEvent.AXIS_Y) - e2.getAxisValue(MotionEvent.AXIS_Y) < 250) {
                 Intent intent = new Intent(ctx, AddLabelActivity.class);
                 startActivity(intent);
             }
