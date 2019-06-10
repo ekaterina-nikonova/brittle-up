@@ -6,18 +6,23 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GestureDetectorCompat;
+import androidx.core.view.MotionEventCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.AdapterView;
@@ -74,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private CameraService mCameraService;
     static DriveService mDriveService;
     private final Executor mExecutor = Executors.newSingleThreadExecutor();
+    private GestureDetectorCompat mGestureDetector;
     private ArrayList<Folder> mFolders = new ArrayList<>();
 
     private Spinner mSpinner;
@@ -87,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mGestureDetector = new GestureDetectorCompat(this, new SwipeListener(this));
         mSpinner = findViewById(R.id.folderSelectionSpinner);
         mSwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         mTextureView = findViewById(R.id.textureView);
@@ -96,6 +103,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mUploadButton = findViewById(R.id.uploadButton);
         mUploadButton.hide();
 
+        mTextureView.setOnTouchListener(gestListener);
         setSupportActionBar(mToolbar);
     }
 
@@ -130,31 +138,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             fetchFolders();
         }
 
-    }
-
-    private Task<Void> fetchFolders() {
-        return Tasks.call(mExecutor, () -> {
-            ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
-                    this,
-                    android.R.layout.simple_spinner_dropdown_item,
-                    mFolders
-            );
-            adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
-            mSpinner.setAdapter(adapter);
-            mSpinner.setOnItemSelectedListener(this);
-
-            mDriveService.setUploadFolderId(null);
-            mDriveService.listAllFolders()
-                .addOnSuccessListener(folders -> {
-                    mFolders.clear();
-                    for (File f: folders) {
-                        mFolders.add(new Folder(f.getId(), f.getName()));
-                    }
-                    adapter.notifyDataSetChanged();
-                })
-                .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
-            return null;
-        });
     }
 
     @Override
@@ -281,4 +264,59 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 CAMERA_PERMISSION_CODE
         );
     }
+
+    private Task<Void> fetchFolders() {
+        return Tasks.call(mExecutor, () -> {
+            ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
+                    this,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    mFolders
+            );
+            adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+            mSpinner.setAdapter(adapter);
+            mSpinner.setOnItemSelectedListener(this);
+
+            mDriveService.setUploadFolderId(null);
+            mDriveService.listAllFolders()
+                    .addOnSuccessListener(folders -> {
+                        mFolders.clear();
+                        for (File f: folders) {
+                            mFolders.add(new Folder(f.getId(), f.getName()));
+                        }
+                        adapter.notifyDataSetChanged();
+                    })
+                    .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
+            return null;
+        });
+    }
+
+    class SwipeListener extends GestureDetector.SimpleOnGestureListener {
+        private Context ctx;
+
+        SwipeListener(Context ctx) {
+            this.ctx = ctx;
+        }
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (e2.getAxisValue(MotionEvent.AXIS_X) < e1.getAxisValue(MotionEvent.AXIS_X) &&
+                    e1.getAxisValue(MotionEvent.AXIS_Y) - e2.getAxisValue(MotionEvent.AXIS_Y) < 100) {
+                Intent intent = new Intent(ctx, AddLabelActivity.class);
+                startActivity(intent);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            Log.i(TAG, "Single tap confirmed: " + e.getAxisValue(MotionEvent.AXIS_Y));
+            return true;
+        }
+    }
+
+    View.OnTouchListener gestListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            return mGestureDetector.onTouchEvent(event);
+        }
+    };
 }
