@@ -11,7 +11,12 @@
     <string name="select_label">Select a label...</string>
     <string name="save_button">Save</string>
     <string name="cancel_button">Cancel</string>
-    <string name="logged_in_as_label">Logged in as</string>
+    <string name="log_out">Log out</string>
+
+    <string name="log_out_dialog_title">Do you want to log out?</string>
+    <string name="log_out_dialog_message">Currently logged in as</string>
+    <string name="log_out_dialog_positive">Log out</string>
+    <string name="log_out_dialog_negative">Cancel</string>
 
     <string name="server_client_id">
         941430037672-ir93f8fn18q3j2l5n5m1e2cm6vbsa285.apps.googleusercontent.com
