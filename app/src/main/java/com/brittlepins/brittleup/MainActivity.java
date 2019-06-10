@@ -34,6 +34,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private final String TAG = "MainActivity";
     private final int CAMERA_PERMISSION_CODE = 1;
+    static final int RC_SIGN_OUT = 2;
 
     TextureView mTextureView;
 
@@ -96,7 +97,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if (account == null) {
             Intent intent = new Intent(this, SignInActivity.class);
             startActivity(intent);
-        } else if (mDriveService == null) {
+        }
+
+        if (mDriveService == null) {
             DriveSignInService driveSignIn = new DriveSignInService(this);
             driveSignIn.driveAuth(account);
         }
@@ -177,7 +180,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                 " " + mAccount.getDisplayName() +
                                 "\n(" + mAccount.getEmail() + ")")
                         .setPositiveButton(getString(R.string.log_out_dialog_positive), (dialog, which) -> {
-                            // log out
+                            Intent intent = new Intent(this, SignInActivity.class);
+                            intent.putExtra("request_code", RC_SIGN_OUT);
+                            startActivity(intent);
                         })
                         .setNegativeButton(getString(R.string.log_out_dialog_negative), (dialog, which) -> {})
                         .show();
