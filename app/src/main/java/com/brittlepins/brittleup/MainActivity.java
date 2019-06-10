@@ -5,6 +5,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
 import android.content.Intent;
@@ -26,10 +27,14 @@ import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.api.services.drive.model.File;
 
 import java.util.ArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private final String TAG = "MainActivity";
@@ -64,12 +69,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
+    static GoogleSignInAccount mAccount;
     private CameraService mCameraService;
     static DriveService mDriveService;
-    static GoogleSignInAccount mAccount;
+    private final Executor mExecutor = Executors.newSingleThreadExecutor();
     private ArrayList<Folder> mFolders = new ArrayList<>();
 
     private Spinner mSpinner;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
     private FloatingActionButton mUploadButton;
     static private ImageView mUploadIndicatorImageView;
 
@@ -79,11 +86,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         setContentView(R.layout.activity_main);
 
         mSpinner = findViewById(R.id.folderSelectionSpinner);
+        mSwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         mTextureView = findViewById(R.id.textureView);
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
 
         mUploadButton = findViewById(R.id.uploadButton);
         mUploadButton.hide();
+
+
     }
 
     @Override
@@ -109,7 +119,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
 
             mAccount = account;
+            mSwipeRefreshLayout.setOnRefreshListener(() -> fetchFolders()
+                    .addOnCompleteListener(aVoid -> mSwipeRefreshLayout.setRefreshing(false))
+                    .addOnFailureListener(aVoid -> mSwipeRefreshLayout.setRefreshing(false))
+            );
 
+            fetchFolders();
+        }
+
+    }
+
+    private Task<Void> fetchFolders() {
+        return Tasks.call(mExecutor, () -> {
             ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
                     this,
                     android.R.layout.simple_spinner_dropdown_item,
@@ -129,8 +150,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     adapter.notifyDataSetChanged();
                 })
                 .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
-        }
-
+            return null;
+        });
     }
 
     @Override
