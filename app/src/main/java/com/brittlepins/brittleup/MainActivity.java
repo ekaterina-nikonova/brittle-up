@@ -1,6 +1,7 @@
 package com.brittlepins.brittleup;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -12,7 +13,9 @@ import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MotionEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.AdapterView;
@@ -27,8 +30,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.api.services.drive.model.File;
 
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private final String TAG = "MainActivity";
@@ -59,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private CameraService mCameraService;
     static DriveService mDriveService;
+    static GoogleSignInAccount mAccount;
     private ArrayList<Folder> mFolders = new ArrayList<>();
 
     private Spinner mSpinner;
@@ -98,6 +100,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             DriveSignInService driveSignIn = new DriveSignInService(this);
             driveSignIn.driveAuth(account);
         }
+
+        mAccount = account;
 
         ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
                 this,
@@ -152,6 +156,35 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
         Log.i(TAG, "Nothing selected.");
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        super.onOptionsItemSelected(item);
+        switch (item.getItemId()) {
+            case R.id.logOutMenuItem:
+                new AlertDialog.Builder(this)
+                        .setIcon(R.drawable.question_icon)
+                        .setTitle(getString(R.string.log_out_dialog_title))
+                        .setMessage(getString(R.string.log_out_dialog_message) +
+                                " " + mAccount.getDisplayName() +
+                                "\n(" + mAccount.getEmail() + ")")
+                        .setPositiveButton(getString(R.string.log_out_dialog_positive), (dialog, which) -> {
+                            // log out
+                        })
+                        .setNegativeButton(getString(R.string.log_out_dialog_negative), (dialog, which) -> {})
+                        .show();
+                return true;
+            default:
+                return false;
+        }
     }
 
     public void takePicture(View view) {
