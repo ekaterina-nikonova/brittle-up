@@ -3,6 +3,7 @@ package com.brittlepins.brittleup;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -77,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private Spinner mSpinner;
     private SwipeRefreshLayout mSwipeRefreshLayout;
+    private Toolbar mToolbar;
     private FloatingActionButton mUploadButton;
     static private ImageView mUploadIndicatorImageView;
 
@@ -88,12 +90,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mSpinner = findViewById(R.id.folderSelectionSpinner);
         mSwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         mTextureView = findViewById(R.id.textureView);
+        mToolbar = findViewById(R.id.toolbar);
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
 
         mUploadButton = findViewById(R.id.uploadButton);
         mUploadButton.hide();
 
-
+        setSupportActionBar(mToolbar);
     }
 
     @Override
@@ -197,7 +200,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        super.onOptionsItemSelected(item);
         switch (item.getItemId()) {
             case R.id.logOutMenuItem:
                 new AlertDialog.Builder(this)
@@ -215,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         .show();
                 return true;
             default:
-                return false;
+                return super.onOptionsItemSelected(item);
         }
     }
 
