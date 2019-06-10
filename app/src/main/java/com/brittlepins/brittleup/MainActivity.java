@@ -41,7 +41,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private final TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            openCamera(width, height);
+            try {
+                openCamera(width, height);
+            } catch (RuntimeException e) {
+                Log.e(TAG, e.getMessage());
+                e.printStackTrace();
+            }
         }
 
         @Override
@@ -191,6 +196,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             default:
                 return false;
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        this.finishAffinity();
     }
 
     public void takePicture(View view) {
