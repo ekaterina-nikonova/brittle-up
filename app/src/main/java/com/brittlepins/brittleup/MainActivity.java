@@ -3,19 +3,26 @@ package com.brittlepins.brittleup;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GestureDetectorCompat;
+import androidx.core.view.MotionEventCompat;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.AdapterView;
@@ -26,10 +33,14 @@ import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.api.services.drive.model.File;
 
 import java.util.ArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private final String TAG = "MainActivity";
@@ -64,26 +75,46 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
+    static GoogleSignInAccount mAccount;
     private CameraService mCameraService;
     static DriveService mDriveService;
-    static GoogleSignInAccount mAccount;
+    private final Executor mExecutor = Executors.newSingleThreadExecutor();
+    private GestureDetectorCompat mGestureDetector;
     private ArrayList<Folder> mFolders = new ArrayList<>();
 
     private Spinner mSpinner;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private Toolbar mToolbar;
     private FloatingActionButton mUploadButton;
     static private ImageView mUploadIndicatorImageView;
+    private ArrayAdapter<Folder> mArrayAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mGestureDetector = new GestureDetectorCompat(this, new SwipeListener(this));
         mSpinner = findViewById(R.id.folderSelectionSpinner);
+        mSwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         mTextureView = findViewById(R.id.textureView);
+        mToolbar = findViewById(R.id.toolbar);
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
 
         mUploadButton = findViewById(R.id.uploadButton);
         mUploadButton.hide();
+
+        mTextureView.setOnTouchListener(gestListener);
+        setSupportActionBar(mToolbar);
+
+        mArrayAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                mFolders
+        );
+        mArrayAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        mSpinner.setAdapter(mArrayAdapter);
+        mSpinner.setOnItemSelectedListener(this);
     }
 
     @Override
@@ -109,26 +140,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
 
             mAccount = account;
-
-            ArrayAdapter<Folder> adapter = new ArrayAdapter<>(
-                    this,
-                    android.R.layout.simple_spinner_dropdown_item,
-                    mFolders
+            mSwipeRefreshLayout.setOnRefreshListener(() -> fetchFolders()
+                    .addOnCompleteListener(aVoid -> mSwipeRefreshLayout.setRefreshing(false))
+                    .addOnFailureListener(aVoid -> mSwipeRefreshLayout.setRefreshing(false))
             );
-            adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
-            mSpinner.setAdapter(adapter);
-            mSpinner.setOnItemSelectedListener(this);
 
-            mDriveService.setUploadFolderId(null);
-            mDriveService.listAllFolders()
-                .addOnSuccessListener(folders -> {
-                    mFolders.clear();
-                    for (File f: folders) {
-                        mFolders.add(new Folder(f.getId(), f.getName()));
-                    }
-                    adapter.notifyDataSetChanged();
-                })
-                .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
+            fetchFolders();
         }
 
     }
@@ -176,7 +193,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        super.onOptionsItemSelected(item);
         switch (item.getItemId()) {
             case R.id.logOutMenuItem:
                 new AlertDialog.Builder(this)
@@ -193,8 +209,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         .setNegativeButton(getString(R.string.log_out_dialog_negative), (dialog, which) -> {})
                         .show();
                 return true;
+            case R.id.addLabelMenuItem:
+                Intent intent = new Intent(this, AddLabelActivity.class);
+                startActivity(intent);
+                return true;
             default:
-                return false;
+                return super.onOptionsItemSelected(item);
         }
     }
 
@@ -206,11 +226,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public void takePicture(View view) {
         mCameraService.takePicture();
-    }
-
-    public void addLabel(View view) {
-        Intent intent = new Intent(this, AddLabelActivity.class);
-        startActivity(intent);
     }
 
     private
@@ -259,4 +274,50 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 CAMERA_PERMISSION_CODE
         );
     }
+
+    private Task<Void> fetchFolders() {
+        return Tasks.call(mExecutor, () -> {
+            mDriveService.setUploadFolderId(null);
+            mDriveService.listAllFolders()
+                    .addOnSuccessListener(folders -> {
+                        mFolders.clear();
+                        for (File f: folders) {
+                            mFolders.add(new Folder(f.getId(), f.getName()));
+                        }
+                        mArrayAdapter.notifyDataSetChanged();
+                    })
+                    .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
+            return null;
+        });
+    }
+
+    class SwipeListener extends GestureDetector.SimpleOnGestureListener {
+        private Context ctx;
+
+        SwipeListener(Context ctx) {
+            this.ctx = ctx;
+        }
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (e2.getAxisValue(MotionEvent.AXIS_X) < e1.getAxisValue(MotionEvent.AXIS_X) &&
+                    e1.getAxisValue(MotionEvent.AXIS_Y) - e2.getAxisValue(MotionEvent.AXIS_Y) < 250) {
+                Intent intent = new Intent(ctx, AddLabelActivity.class);
+                startActivity(intent);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            Log.i(TAG, "Single tap confirmed: " + e.getAxisValue(MotionEvent.AXIS_Y));
+            return true;
+        }
+    }
+
+    View.OnTouchListener gestListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            return mGestureDetector.onTouchEvent(event);
+        }
+    };
 }

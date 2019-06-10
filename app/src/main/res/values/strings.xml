@@ -1,13 +1,15 @@
 <resources>
     <string name="app_name">Brittle Up</string>
 
+    <string name="sign_in_activity_title">Sign in</string>
     <string name="sign_in_button_label">Sign in with Google</string>
     <string name="sign_in_explanation">
         Brittle Up uploads photos to Google Drive.
         To make it possible, you need to sign in to your Google account.
     </string>
 
-    <string name="add_new_label">Add new label...</string>
+    <string name="add_new_label">Add new label</string>
+    <string name="add_new_label_placeholder">Add new label...</string>
     <string name="select_label">Select a label...</string>
     <string name="save_button">Save</string>
     <string name="cancel_button">Cancel</string>
