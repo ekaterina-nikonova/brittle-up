@@ -85,15 +85,17 @@ public class DriveService {
     }
 
     public Task<List<File>> listAllFolders() {
-        return Tasks.call(mExecutor, () -> {
-            List<File> folders = new ArrayList<>();
-            FileList result = mDrive.files().list()
-                    .setQ("mimeType = 'application/vnd.google-apps.folder' and trashed = false and parents='" + mRootFolderId + "'")
-                    .setFields("files(id, name)")
-                    .execute();
-            folders.addAll(result.getFiles());
-            return folders;
-        });
+        return Tasks.call(mExecutor, () -> list());
+    }
+
+    List<File> list() throws IOException {
+        List<File> folders = new ArrayList<>();
+        FileList result = mDrive.files().list()
+                .setQ("mimeType = 'application/vnd.google-apps.folder' and trashed = false and parents='" + mRootFolderId + "'")
+                .setFields("files(id, name)")
+                .execute();
+        folders.addAll(result.getFiles());
+        return folders;
     }
 
     public void setRootFolderId(String id) {
