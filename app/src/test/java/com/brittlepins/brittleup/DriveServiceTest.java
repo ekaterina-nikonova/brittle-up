@@ -7,6 +7,8 @@ import com.google.api.services.drive.model.FileList;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
@@ -16,6 +18,7 @@ import java.util.List;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -28,6 +31,9 @@ public class DriveServiceTest {
     DriveService mDriveService;
     Drive mDrive = mock(Drive.class, RETURNS_DEEP_STUBS);
     Drive mDriveFailing = mock(Drive.class, RETURNS_DEEP_STUBS);
+
+    @Captor
+    ArgumentCaptor<String> argumentCaptor;
 
     @Before
     public void setUp() throws Exception {
@@ -50,6 +56,12 @@ public class DriveServiceTest {
 
         mDriveService.listAllFolders();
         verify(mDriveService, times(1)).list();
+
+        mDriveService.createFolder("parent-id", "folder-name");
+        verify(mDriveService).findOrCreate(argumentCaptor.capture(), argumentCaptor.capture());
+        List<String> args = argumentCaptor.getAllValues();
+        assertEquals("parent-id", args.get(0));
+        assertEquals("folder-name", args.get(1));
     }
 
     @Test
