@@ -15,17 +15,7 @@ public class Folder {
         return mId;
     }
 
-    public String getName() {
-        return mName;
-    }
-
-    public void setId(String id) {
-        mId = id;
-    }
-
-    public void setName(String name) {
-        mName = name;
-    }
+    public String getName() { return mName; }
 
     @NonNull
     @Override
