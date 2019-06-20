@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -32,18 +33,21 @@ public class DriveServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        mDriveService = new DriveService(mDrive);
+        mDriveService = spy(new DriveService(mDrive));
         when(mDrive.files().list().setQ(anyString()).setFields(anyString()).execute())
                 .thenReturn(mockFileList());
+        when(mDrive.files().create(any()).execute()).thenReturn(mockFile());
         when(mDriveFailing.files().list().setQ(anyString()).setFields(anyString()).execute())
                 .thenThrow(IOException.class);
     }
 
     @Test
-    public void listAllFoldersShouldRunList() throws IOException {
-        DriveService spyService = spy(new DriveService(mDrive));
-        spyService.listAllFolders();
-        verify(spyService, times(1)).list();
+    public void methodsShouldBeCalledInCallbacks() throws IOException {
+        mDriveService.listAllFolders();
+        verify(mDriveService, times(1)).list();
+
+        mDriveService.createFile();
+        verify(mDriveService, times(1)).create();
     }
 
     @Test
@@ -54,17 +58,27 @@ public class DriveServiceTest {
         assertEquals("test-name", files.get(0).getName());
     }
 
+    @Test
+    public void createShouldReturnFile() throws IOException {
+        File file = mDriveService.create();
+        assertEquals("test-id", file.getId());
+        assertEquals("test-name", file.getName());
+    }
 
     private
 
     FileList mockFileList() {
-        File file = new File();
-        file.setId("test-id");
-        file.setName("test-name");
         ArrayList<File> files = new ArrayList<>();
-        files.add(file);
+        files.add(mockFile());
         FileList fileList = new FileList();
         fileList.setFiles(files);
         return fileList;
+    }
+
+    File mockFile() {
+        File file = new File();
+        file.setId("test-id");
+        file.setName("test-name");
+        return file;
     }
 }

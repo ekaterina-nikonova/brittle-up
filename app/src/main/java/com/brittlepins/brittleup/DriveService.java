@@ -27,20 +27,22 @@ public class DriveService {
     }
 
     public Task<File> createFile() {
-        return Tasks.call(mExecutor, () -> {
-            File metadata = new File()
-                    .setParents(Collections.singletonList(mUploadFolderId))
-                    .setMimeType("image/jpeg")
-                    .setName(String.valueOf(new Date().getTime()));
+        return Tasks.call(mExecutor, () -> create());
+    }
 
-            File imageFile = mDrive.files().create(metadata).execute();
+    File create() throws IOException {
+        File metadata = new File()
+                .setParents(Collections.singletonList(mUploadFolderId))
+                .setMimeType("image/jpeg")
+                .setName(String.valueOf(new Date().getTime()));
 
-            if (imageFile == null) {
-                throw new IOException("Null result when requesting image file creation.");
-            }
+        File imageFile = mDrive.files().create(metadata).execute();
 
-            return imageFile;
-        });
+        if (imageFile == null) {
+            throw new IOException("Null result when requesting image file creation.");
+        }
+
+        return imageFile;
     }
 
     public Task<Void> saveFile(String fileId, String mimeType, byte[] content) {
