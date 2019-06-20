@@ -5,9 +5,7 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -36,49 +34,108 @@ public class DriveServiceTest {
         mDriveService = spy(new DriveService(mDrive));
         when(mDrive.files().list().setQ(anyString()).setFields(anyString()).execute())
                 .thenReturn(mockFileList());
-        when(mDrive.files().create(any()).execute()).thenReturn(mockFile());
+        when(mDrive.files().create(any()).execute()).thenReturn(mockFile_1());
+        when(mDrive.files().update(anyString(), any(), any()).execute()).thenReturn(null);
+        when(mDrive.files().delete(anyString()).execute()).then(answer -> null);
+
         when(mDriveFailing.files().list().setQ(anyString()).setFields(anyString()).execute())
                 .thenThrow(IOException.class);
+        when(mDriveFailing.files().create(any()).execute()).thenReturn(null);
     }
 
     @Test
     public void methodsShouldBeCalledInCallbacks() throws IOException {
-        mDriveService.listAllFolders();
-        verify(mDriveService, times(1)).list();
-
         mDriveService.createFile();
         verify(mDriveService, times(1)).create();
+
+        mDriveService.listAllFolders();
+        verify(mDriveService, times(1)).list();
     }
 
     @Test
     public void listShouldReturnFolders() throws IOException {
         List<File> files = mDriveService.list();
-        assertEquals(1, files.size());
-        assertEquals("test-id", files.get(0).getId());
-        assertEquals("test-name", files.get(0).getName());
+        assertEquals(2, files.size());
+        assertEquals("test-id-1", files.get(0).getId());
+        assertEquals("test-name-1", files.get(0).getName());
     }
 
     @Test
     public void createShouldReturnFile() throws IOException {
         File file = mDriveService.create();
-        assertEquals("test-id", file.getId());
-        assertEquals("test-name", file.getName());
+        assertEquals("test-id-1", file.getId());
+        assertEquals("test-name-1", file.getName());
+    }
+
+    @Test(expected = IOException.class)
+    public void createShouldThrowExceptionWhenResultNull() throws IOException {
+        DriveService failingService = new DriveService(mDriveFailing);
+        failingService.create();
+    }
+
+    @Test
+    public void saveFileShouldSucceed() {
+        byte[] content = new byte[0];
+        mDriveService.saveFile("test-file", "test-mime", content);
+    }
+
+    @Test
+    public void deleteFileShouldSucceed() {
+        mDriveService.deleteFile("test-file");
+    }
+
+    @Test
+    public void setRootFolderIdShouldWork() {
+        String id = "test-root-folder-id";
+        mDriveService.setRootFolderId(id);
+        assertEquals(mDriveService.mRootFolderId, id);
+    }
+
+    @Test
+    public void setUploadFolderIdShouldWork() {
+        String id = "test-upload-folder-id";
+        mDriveService.setUploadFolderId(id);
+        assertEquals(mDriveService.mUploadFolderId, id);
+    }
+
+    @Test
+    public void findOrCreate_ShouldCreateAFile_IfDoesNotExist() throws IOException {
+        when(mDrive.files().list().setQ(anyString()).setFields(anyString()).execute())
+                .thenReturn(new FileList().setFiles(new ArrayList<>()));
+        when(mDrive.files().create(any()).setFields(anyString()).execute())
+                .thenReturn(new File().setName("new-file-name").setId("new-file-id"));
+
+        File newFolder = mDriveService.findOrCreate("parent-id", "folder-name");
+        assertEquals(newFolder.getName(), "new-file-name");
+        assertEquals(newFolder.getId(), "new-file-id");
+    }
+
+    @Test
+    public void findOrCreate_ShouldFindAFile_IfExists() throws IOException {
+        when(mDrive.files().list().setQ(anyString()).setFields(anyString()).execute())
+                .thenReturn(mockFileList());
+
+        File foundFolder = mDriveService.findOrCreate("parent-id", "folder-name");
+        assertEquals(foundFolder.getName(), "test-name-1");
+        assertEquals(foundFolder.getId(), "test-id-1");
     }
 
     private
 
     FileList mockFileList() {
         ArrayList<File> files = new ArrayList<>();
-        files.add(mockFile());
+        files.add(mockFile_1());
+        files.add(mockFile_2());
         FileList fileList = new FileList();
         fileList.setFiles(files);
         return fileList;
     }
 
-    File mockFile() {
-        File file = new File();
-        file.setId("test-id");
-        file.setName("test-name");
-        return file;
+    File mockFile_1() {
+        return new File().setId("test-id-1").setName("test-name-1");
+    }
+
+    File mockFile_2() {
+        return new File().setId("test-id-2").setName("test-name-2");
     }
 }

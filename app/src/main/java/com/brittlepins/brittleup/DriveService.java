@@ -64,26 +64,28 @@ public class DriveService {
     }
 
     public Task<File> createFolder(String parentId, String name) {
-        return Tasks.call(mExecutor, () -> {
-            String query = "name='"
-                    + name
-                    + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
-            FileList result = mDrive.files().list()
-                    .setQ(query)
-                    .setFields("files(id, name)")
-                    .execute();
+        return Tasks.call(mExecutor, () -> findOrCreate(parentId, name));
+    }
 
-            if (result.getFiles().isEmpty()) {
-                File metadata = new File()
-                        .setName(name)
-                        .setMimeType("application/vnd.google-apps.folder")
-                        .setParents(Collections.singletonList(parentId));
-                File file = mDrive.files().create(metadata).setFields("id, name").execute();
-                return file;
-            } else {
-                return result.getFiles().get(0);
-            }
-        });
+    public File findOrCreate(String parentId, String name) throws IOException {
+        String query = "name='"
+                + name
+                + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+        FileList result = mDrive.files().list()
+                .setQ(query)
+                .setFields("files(id, name)")
+                .execute();
+
+        if (result.getFiles().isEmpty()) {
+            File metadata = new File()
+                    .setName(name)
+                    .setMimeType("application/vnd.google-apps.folder")
+                    .setParents(Collections.singletonList(parentId));
+            File file = mDrive.files().create(metadata).setFields("id, name").execute();
+            return file;
+        } else {
+            return result.getFiles().get(0);
+        }
     }
 
     public Task<List<File>> listAllFolders() {
