@@ -194,6 +194,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.imageSizeMenuItem:
+                return true;
             case R.id.logOutMenuItem:
                 new AlertDialog.Builder(this)
                         .setIcon(R.drawable.question_icon)

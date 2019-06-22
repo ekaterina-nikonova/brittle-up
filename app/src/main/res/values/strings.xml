@@ -8,6 +8,9 @@
         To make it possible, you need to sign in to your Google account.
     </string>
 
+    <string name="image_size_menu_item">Select image size</string>
+    <string name="log_out_menu_item">Log out</string>
+
     <string name="add_new_label">Add new label</string>
     <string name="add_new_label_placeholder">Add new label...</string>
     <string name="select_label">Select a label...</string>
