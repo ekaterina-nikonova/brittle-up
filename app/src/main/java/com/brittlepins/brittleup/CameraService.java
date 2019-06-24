@@ -1,7 +1,11 @@
 package com.brittlepins.brittleup;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -19,8 +23,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
+import android.util.SparseIntArray;
 import android.view.Surface;
-import android.view.TextureView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -37,8 +41,17 @@ import static android.content.Context.CAMERA_SERVICE;
 public class CameraService {
     private final String TAG = "CameraService";
 
+    private Activity activity;
     private Context ctx;
-    private TextureView textureView;
+    private AutofitTextureView textureView;
+
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
 
     private static final int STATE_PREVIEW = 0;
     private static final int STATE_WAITING_LOCK = 1;
@@ -56,6 +69,7 @@ public class CameraService {
     private CaptureRequest mPreviewRequest;
     private Size mPreviewSize;
     private CaptureRequest.Builder mPreviewRequestBuilder;
+    private int mSensorOrientation;
     private int mState = STATE_PREVIEW;
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
@@ -88,11 +102,11 @@ public class CameraService {
         }
     };
 
-    CameraService(Context ctx, TextureView textureView) {
+    CameraService(Activity activity, Context ctx, AutofitTextureView textureView) {
+        this.activity = activity;
         this.ctx = ctx;
         this.textureView = textureView;
     }
-
 
     void openCamera(int width, int height, CameraManager manager) {
         setUpCameraOutputs(width, height);
@@ -185,9 +199,26 @@ public class CameraService {
         }
     }
 
-    private
 
-    void setUpCameraOutputs(int width, int height) {
+    void startBackgroundThread() {
+        mBackgroundThread = new HandlerThread("CameraBackground");
+        mBackgroundThread.start();
+        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+    }
+
+    void stopBackgroundThread() {
+        mBackgroundThread.quitSafely();
+        try {
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Stop background thread interrupted: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void setUpCameraOutputs(int width, int height) {
         CameraManager manager = (CameraManager) ctx.getSystemService(CAMERA_SERVICE);
         try {
             for(String cameraId: manager.getCameraIdList()) {
@@ -206,7 +237,43 @@ public class CameraService {
                 mImageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
                 mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
 
+                // Check if dimensions should be swapped according to sensor coordination
+
+                int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+                mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+                boolean swappedDimentions = false;
+                switch (displayRotation) {
+                    case Surface.ROTATION_0:
+                    case Surface.ROTATION_180:
+                        if (mSensorOrientation == 90 || mSensorOrientation == 270) {
+                            swappedDimentions = true;
+                        }
+                        break;
+                    case Surface.ROTATION_90:
+                    case Surface.ROTATION_270:
+                        if (mSensorOrientation == 0 || mSensorOrientation == 180) {
+                            swappedDimentions = true;
+                        }
+                        break;
+                    default:
+                        Log.e(TAG, "Invalid display rotation: " + displayRotation);
+                }
+
+                int rotatedPreviewWidth = width;
+                int rotatedPreviewHeight = height;
+                if (swappedDimentions) {
+                    rotatedPreviewWidth = height;
+                    rotatedPreviewHeight = width;
+                }
+
                 mPreviewSize = map.getOutputSizes(SurfaceTexture.class)[0];
+
+                int orientation = ctx.getResources().getConfiguration().orientation;
+                if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    textureView.setAspectRatio(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+                } else {
+                    textureView.setAspectRatio(mPreviewSize.getHeight(), mPreviewSize.getWidth());
+                }
 
                 mCameraId = cameraId;
                 return;
@@ -217,13 +284,31 @@ public class CameraService {
         }
     }
 
-    void configureTransform(int width, int height) {
-        if (textureView == null || mPreviewSize == null) {
-            //
+    private void configureTransform(int viewWidth, int viewHeight) {
+        if (null == textureView || null == mPreviewSize || null == activity) {
+            return;
         }
+        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        Matrix matrix = new Matrix();
+        RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
+        RectF bufferRect = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
+        float centerX = viewRect.centerX();
+        float centerY = viewRect.centerY();
+        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
+            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
+            float scale = Math.max(
+                    (float) viewHeight / mPreviewSize.getHeight(),
+                    (float) viewWidth / mPreviewSize.getWidth());
+            matrix.postScale(scale, scale, centerX, centerY);
+            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
+        } else if (Surface.ROTATION_180 == rotation) {
+            matrix.postRotate(180, centerX, centerY);
+        }
+        textureView.setTransform(matrix);
     }
 
-    CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
+    private CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
         private void process(CaptureResult result) {
             switch (mState) {
                 case STATE_PREVIEW: {
@@ -275,7 +360,7 @@ public class CameraService {
         }
     };
 
-    void captureStillPicture() {
+    private void captureStillPicture() {
         try {
             if (mCameraDevice == null) {
                 return;
@@ -284,6 +369,9 @@ public class CameraService {
             final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             captureBuilder.addTarget(mImageReader.getSurface());
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+
+            int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
 
             CameraCaptureSession.CaptureCallback callback = new CameraCaptureSession.CaptureCallback() {
                 @Override
@@ -303,7 +391,11 @@ public class CameraService {
         }
     }
 
-    void unlockFocus() {
+    private int getOrientation(int rotation) {
+        return (ORIENTATIONS.get(rotation) + mSensorOrientation + 270) % 360;
+    }
+
+    private void unlockFocus() {
         try {
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
@@ -315,7 +407,7 @@ public class CameraService {
         }
     }
 
-    void runPrecaptureSequence() {
+    private void runPrecaptureSequence() {
         try {
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
                     CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
@@ -323,24 +415,6 @@ public class CameraService {
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             Log.e(TAG, "Could not access the camera: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    void startBackgroundThread() {
-        mBackgroundThread = new HandlerThread("CameraBackground");
-        mBackgroundThread.start();
-        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-    }
-
-    void stopBackgroundThread() {
-        mBackgroundThread.quitSafely();
-        try {
-            mBackgroundThread.join();
-            mBackgroundThread = null;
-            mBackgroundHandler = null;
-        } catch (InterruptedException e) {
-            Log.e(TAG, "Stop background thread interrupted: " + e.getMessage());
             e.printStackTrace();
         }
     }

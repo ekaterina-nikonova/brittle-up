@@ -12,6 +12,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
@@ -47,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private final int CAMERA_PERMISSION_CODE = 1;
     static final int RC_SIGN_OUT = 2;
 
-    TextureView mTextureView;
+    AutofitTextureView mTextureView;
 
     private final TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
@@ -62,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            Log.i(TAG, "Surface texture size changed!");
             // configureTransform(width, height);
         }
 
@@ -121,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onResume() {
         super.onResume();
 
-        mCameraService = new CameraService(this, mTextureView);
+        mCameraService = new CameraService(this, getApplicationContext(), mTextureView);
         mCameraService.startBackgroundThread();
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
@@ -195,6 +197,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.imageSizeMenuItem:
+                String[] items = new String[3];
+                items[0] = "1";
+                items[1] = "2";
+                items[2] = "3";
+                new AlertDialog.Builder(this)
+                        .setTitle(getString(R.string.image_size_dialog_title) + ": " + mTextureView.getWidth() + " x " + mTextureView.getHeight())
+                        .setItems(items, (dialog, which) -> setImageSize(which))
+                        .show();
                 return true;
             case R.id.logOutMenuItem:
                 new AlertDialog.Builder(this)
@@ -291,6 +301,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     .addOnFailureListener(error -> Log.e(TAG, "Failed to fetch folders: " + error.getMessage()));
             return null;
         });
+    }
+
+    void setImageSize(int which) {
+        Log.i(TAG, String.valueOf(which));
     }
 
     class SwipeListener extends GestureDetector.SimpleOnGestureListener {
