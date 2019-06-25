@@ -18,7 +18,8 @@
     <string name="cancel_button">Cancel</string>
     <string name="log_out">Log out</string>
 
-    <string name="image_size_dialog_title">Current image size</string>
+    <string name="image_size_dialog_title">Select image size</string>
+    <string name="by_symbol">\u10799</string>
     <string name="image_size_dialog_positive">OK</string>
     <string name="image_size_dialog_negative">Cancel</string>
 

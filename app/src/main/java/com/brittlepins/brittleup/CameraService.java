@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -32,7 +33,11 @@ import androidx.annotation.NonNull;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -237,34 +242,24 @@ public class CameraService {
                 mImageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
                 mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
 
-                // Check if dimensions should be swapped according to sensor coordination
+                List<Size> sizes = Arrays.asList(map.getOutputSizes(ImageFormat.JPEG));
+                MainActivity.mAvailableImageSizesList = sizes;
+                MainActivity.setAvailableImageSizes(sizes);
+                if (MainActivity.mImageSize == null) {
+                    MainActivity.selectImageSize(sizes.get(0), 0);
+                }
+                MainActivity.mImageSizeTextView.setText(MainActivity.mImageSize.getWidth() + " \u00D7 " + MainActivity.mImageSize.getHeight());
 
-                int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+                Size size = MainActivity.mImageSize;
+                mImageReader = ImageReader.newInstance(size.getWidth(), size.getHeight(),
+                        ImageFormat.JPEG,2);
+                mImageReader.setOnImageAvailableListener(
+                        mOnImageAvailableListener, mBackgroundHandler);
+
                 mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-                boolean swappedDimentions = false;
-                switch (displayRotation) {
-                    case Surface.ROTATION_0:
-                    case Surface.ROTATION_180:
-                        if (mSensorOrientation == 90 || mSensorOrientation == 270) {
-                            swappedDimentions = true;
-                        }
-                        break;
-                    case Surface.ROTATION_90:
-                    case Surface.ROTATION_270:
-                        if (mSensorOrientation == 0 || mSensorOrientation == 180) {
-                            swappedDimentions = true;
-                        }
-                        break;
-                    default:
-                        Log.e(TAG, "Invalid display rotation: " + displayRotation);
-                }
 
-                int rotatedPreviewWidth = width;
-                int rotatedPreviewHeight = height;
-                if (swappedDimentions) {
-                    rotatedPreviewWidth = height;
-                    rotatedPreviewHeight = width;
-                }
+                Point displaySize = new Point();
+                activity.getWindowManager().getDefaultDisplay().getSize(displaySize);
 
                 mPreviewSize = map.getOutputSizes(SurfaceTexture.class)[0];
 
@@ -284,7 +279,7 @@ public class CameraService {
         }
     }
 
-    private void configureTransform(int viewWidth, int viewHeight) {
+    void configureTransform(int viewWidth, int viewHeight) {
         if (null == textureView || null == mPreviewSize || null == activity) {
             return;
         }

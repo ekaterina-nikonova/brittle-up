@@ -7,7 +7,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GestureDetectorCompat;
-import androidx.core.view.MotionEventCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
@@ -19,6 +18,7 @@ import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Size;
 import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -30,6 +30,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -40,6 +41,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.api.services.drive.model.File;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -63,8 +65,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-            Log.i(TAG, "Surface texture size changed!");
-            // configureTransform(width, height);
+            mCameraService.configureTransform(width, height);
         }
 
         @Override
@@ -78,11 +79,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     };
 
     static GoogleSignInAccount mAccount;
+    static String[] mAvailableImageSizes;
+    static List<Size> mAvailableImageSizesList;
     private CameraService mCameraService;
     static DriveService mDriveService;
     private final Executor mExecutor = Executors.newSingleThreadExecutor();
     private GestureDetectorCompat mGestureDetector;
     private ArrayList<Folder> mFolders = new ArrayList<>();
+    static Size mImageSize;
+    static int mImageSizeIndex;
+    static TextView mImageSizeTextView;
 
     private Spinner mSpinner;
     private SwipeRefreshLayout mSwipeRefreshLayout;
@@ -96,6 +102,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mImageSizeTextView = findViewById(R.id.imageSizeTextView);
         mGestureDetector = new GestureDetectorCompat(this, new SwipeListener(this));
         mSpinner = findViewById(R.id.folderSelectionSpinner);
         mSwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
@@ -149,7 +156,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             fetchFolders();
         }
-
     }
 
     @Override
@@ -197,13 +203,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.imageSizeMenuItem:
-                String[] items = new String[3];
-                items[0] = "1";
-                items[1] = "2";
-                items[2] = "3";
                 new AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.image_size_dialog_title) + ": " + mTextureView.getWidth() + " x " + mTextureView.getHeight())
-                        .setItems(items, (dialog, which) -> setImageSize(which))
+                        .setTitle(getString(R.string.image_size_dialog_title))
+                        .setSingleChoiceItems(mAvailableImageSizes, mImageSizeIndex, (dialog, which) -> setImageSize(dialog, which))
                         .show();
                 return true;
             case R.id.logOutMenuItem:
@@ -236,13 +238,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         this.finishAffinity();
     }
 
+    public static void setAvailableImageSizes(List<Size> sizes) {
+        mAvailableImageSizes = new String[sizes.size()];
+        for(Size size: sizes) {
+            mAvailableImageSizes[sizes.indexOf(size)] = size.getWidth() + " \u00D7 " + size.getHeight();
+        }
+    }
+
+    public static void selectImageSize(Size size, int index) {
+        mImageSize = size;
+        mImageSizeIndex = index;
+    }
+
     public void takePicture(View view) {
         mCameraService.takePicture();
     }
 
-    private
-
-    void openCamera(int width, int height) {
+    private void openCamera(int width, int height) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             requestCameraPermission();
@@ -255,8 +267,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     static void createFile(byte[] content) {
         final String TAG = "MainActivity createFile";
         if (mDriveService != null) {
-            Log.i(TAG, "Creating file");
-
             mDriveService.createFile()
                     .addOnSuccessListener(file -> saveFile(file.getId(), file.getMimeType(), content))
                     .addOnFailureListener(ex -> Log.e(TAG, "Could not create file", ex));
@@ -303,8 +313,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         });
     }
 
-    void setImageSize(int which) {
-        Log.i(TAG, String.valueOf(which));
+    void setImageSize(DialogInterface dialog, int which) {
+        dialog.dismiss();
+        Size size = mAvailableImageSizesList.get(which);
+        mImageSize = size;
+        mImageSizeIndex = which;
+
+        Intent intent = getIntent();
+        finish();
+        startActivity(intent);
     }
 
     class SwipeListener extends GestureDetector.SimpleOnGestureListener {
