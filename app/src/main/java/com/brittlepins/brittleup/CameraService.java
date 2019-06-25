@@ -248,6 +248,7 @@ public class CameraService {
                 if (MainActivity.mImageSize == null) {
                     MainActivity.selectImageSize(sizes.get(0), 0);
                 }
+                MainActivity.mImageSizeTextView.setText(MainActivity.mImageSize.getWidth() + " \u00D7 " + MainActivity.mImageSize.getHeight());
 
                 Size size = MainActivity.mImageSize;
                 mImageReader = ImageReader.newInstance(size.getWidth(), size.getHeight(),
