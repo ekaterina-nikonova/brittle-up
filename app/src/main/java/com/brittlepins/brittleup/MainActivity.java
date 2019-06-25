@@ -79,13 +79,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
-    static String[] mAvailableImageSizes;
     static GoogleSignInAccount mAccount;
+    static String[] mAvailableImageSizes;
+    static List<Size> mAvailableImageSizesList;
     private CameraService mCameraService;
     static DriveService mDriveService;
     private final Executor mExecutor = Executors.newSingleThreadExecutor();
     private GestureDetectorCompat mGestureDetector;
     private ArrayList<Folder> mFolders = new ArrayList<>();
+    static Size mImageSize;
 
     private Spinner mSpinner;
     private SwipeRefreshLayout mSwipeRefreshLayout;
@@ -200,7 +202,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         switch (item.getItemId()) {
             case R.id.imageSizeMenuItem:
                 new AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.image_size_dialog_title) + ": " + mTextureView.getWidth() + " x " + mTextureView.getHeight())
+                        .setTitle(getString(R.string.image_size_dialog_title) + ": " + mImageSize.getWidth() + " x " + mImageSize.getHeight())
                         .setItems(mAvailableImageSizes, (dialog, which) -> setImageSize(which))
                         .show();
                 return true;
@@ -239,6 +241,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         for(Size size: sizes) {
             mAvailableImageSizes[sizes.indexOf(size)] = size.getWidth() + " x " + size.getHeight();
         }
+    }
+
+    public static void selectImageSize(Size size) {
+        mImageSize = size;
     }
 
     public void takePicture(View view) {
@@ -307,7 +313,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     void setImageSize(int which) {
-        Log.i(TAG, String.valueOf(which));
+        mImageSize = mAvailableImageSizesList.get(which);
+        Intent intent = getIntent();
+        finish();
+        startActivity(intent);
     }
 
     class SwipeListener extends GestureDetector.SimpleOnGestureListener {

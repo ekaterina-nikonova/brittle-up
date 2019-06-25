@@ -242,15 +242,16 @@ public class CameraService {
                 mImageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
                 mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
 
-                // TODO Instead of max for the largest supported format or min for the smallest one, use for size selector
                 List<Size> sizes = Arrays.asList(map.getOutputSizes(ImageFormat.JPEG));
+                MainActivity.mAvailableImageSizesList = sizes;
                 MainActivity.setAvailableImageSizes(sizes);
+                if (MainActivity.mImageSize == null) {
+                    MainActivity.selectImageSize(sizes.get(0));
+                }
 
-                Size largest = Collections.min(
-                        Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
-                        new CompareSizesByArea());
-                mImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
-                        ImageFormat.JPEG, /*maxImages*/2);
+                Size size = MainActivity.mImageSize;
+                mImageReader = ImageReader.newInstance(size.getWidth(), size.getHeight(),
+                        ImageFormat.JPEG,2);
                 mImageReader.setOnImageAvailableListener(
                         mOnImageAvailableListener, mBackgroundHandler);
 
@@ -292,7 +293,7 @@ public class CameraService {
                 //mPreviewSize = map.getOutputSizes(SurfaceTexture.class)[0];
                 mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                         rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                        maxPreviewHeight, largest);
+                        maxPreviewHeight, size);
 
                 int orientation = ctx.getResources().getConfiguration().orientation;
                 if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
