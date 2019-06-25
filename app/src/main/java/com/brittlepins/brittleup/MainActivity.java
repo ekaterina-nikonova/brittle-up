@@ -19,6 +19,7 @@ import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Size;
 import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -40,6 +41,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.api.services.drive.model.File;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -77,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
+    static String[] mAvailableImageSizes;
     static GoogleSignInAccount mAccount;
     private CameraService mCameraService;
     static DriveService mDriveService;
@@ -149,7 +152,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             fetchFolders();
         }
-
     }
 
     @Override
@@ -197,13 +199,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.imageSizeMenuItem:
-                String[] items = new String[3];
-                items[0] = "1";
-                items[1] = "2";
-                items[2] = "3";
                 new AlertDialog.Builder(this)
                         .setTitle(getString(R.string.image_size_dialog_title) + ": " + mTextureView.getWidth() + " x " + mTextureView.getHeight())
-                        .setItems(items, (dialog, which) -> setImageSize(which))
+                        .setItems(mAvailableImageSizes, (dialog, which) -> setImageSize(which))
                         .show();
                 return true;
             case R.id.logOutMenuItem:
@@ -236,13 +234,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         this.finishAffinity();
     }
 
+    public static void setAvailableImageSizes(List<Size> sizes) {
+        mAvailableImageSizes = new String[sizes.size()];
+        for(Size size: sizes) {
+            mAvailableImageSizes[sizes.indexOf(size)] = size.getWidth() + " x " + size.getHeight();
+        }
+    }
+
     public void takePicture(View view) {
         mCameraService.takePicture();
     }
 
-    private
-
-    void openCamera(int width, int height) {
+    private void openCamera(int width, int height) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             requestCameraPermission();
