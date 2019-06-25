@@ -246,7 +246,7 @@ public class CameraService {
                 MainActivity.mAvailableImageSizesList = sizes;
                 MainActivity.setAvailableImageSizes(sizes);
                 if (MainActivity.mImageSize == null) {
-                    MainActivity.selectImageSize(sizes.get(0));
+                    MainActivity.selectImageSize(sizes.get(0), 0);
                 }
 
                 Size size = MainActivity.mImageSize;

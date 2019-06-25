@@ -1,13 +1,13 @@
 package com.brittlepins.brittleup;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GestureDetectorCompat;
-import androidx.core.view.MotionEventCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
@@ -27,6 +28,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.TextureView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
@@ -87,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private GestureDetectorCompat mGestureDetector;
     private ArrayList<Folder> mFolders = new ArrayList<>();
     static Size mImageSize;
+    static int mImageSizeIndex;
 
     private Spinner mSpinner;
     private SwipeRefreshLayout mSwipeRefreshLayout;
@@ -202,7 +205,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             case R.id.imageSizeMenuItem:
                 new AlertDialog.Builder(this)
                         .setTitle(getString(R.string.image_size_dialog_title) + ": " + mImageSize.getWidth() + " x " + mImageSize.getHeight())
-                        .setItems(mAvailableImageSizes, (dialog, which) -> setImageSize(which))
+                        //.setItems(mAvailableImageSizes, (dialog, which) -> setImageSize(which))
+                        .setSingleChoiceItems(mAvailableImageSizes, mImageSizeIndex, (dialog, which) -> setImageSize(which))
                         .show();
                 return true;
             case R.id.logOutMenuItem:
@@ -242,8 +246,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-    public static void selectImageSize(Size size) {
+    public static void selectImageSize(Size size, int index) {
         mImageSize = size;
+        mImageSizeIndex = index;
     }
 
     public void takePicture(View view) {
@@ -311,6 +316,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     void setImageSize(int which) {
         mImageSize = mAvailableImageSizesList.get(which);
+        mImageSizeIndex = which;
         Intent intent = getIntent();
         finish();
         startActivity(intent);
