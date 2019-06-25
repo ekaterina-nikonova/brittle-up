@@ -65,8 +65,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-            Log.i(TAG, "Surface texture size changed!");
-            // configureTransform(width, height);
+            mCameraService.configureTransform(width, height);
         }
 
         @Override
@@ -264,8 +263,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     static void createFile(byte[] content) {
         final String TAG = "MainActivity createFile";
         if (mDriveService != null) {
-            Log.i(TAG, "Creating file");
-
             mDriveService.createFile()
                     .addOnSuccessListener(file -> saveFile(file.getId(), file.getMimeType(), content))
                     .addOnFailureListener(ex -> Log.e(TAG, "Could not create file", ex));
