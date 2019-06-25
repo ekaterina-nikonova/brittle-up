@@ -114,7 +114,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
 
         mFlashButton = findViewById(R.id.flashButton);
-        mFlashButton.setAlpha(0.5f);
         mUploadButton = findViewById(R.id.uploadButton);
         mUploadButton.hide();
 
@@ -262,9 +261,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void toggleFlash(View view) {
         mFlashOn = !mFlashOn;
         if (mFlashOn) {
-            findViewById(R.id.flashButton).setAlpha(1f);
+            mFlashButton.setImageResource(R.drawable.flash_on_icon);
         } else {
-            findViewById(R.id.flashButton).setAlpha(0.5f);
+            mFlashButton.setImageResource(R.drawable.flash_off_icon);
         }
     }
 
