@@ -204,8 +204,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         switch (item.getItemId()) {
             case R.id.imageSizeMenuItem:
                 new AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.image_size_dialog_title) + ": " + mImageSize.getWidth() + " x " + mImageSize.getHeight())
-                        //.setItems(mAvailableImageSizes, (dialog, which) -> setImageSize(which))
+                        .setTitle(getString(R.string.image_size_dialog_title))
                         .setSingleChoiceItems(mAvailableImageSizes, mImageSizeIndex, (dialog, which) -> setImageSize(which))
                         .show();
                 return true;
@@ -242,7 +241,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public static void setAvailableImageSizes(List<Size> sizes) {
         mAvailableImageSizes = new String[sizes.size()];
         for(Size size: sizes) {
-            mAvailableImageSizes[sizes.indexOf(size)] = size.getWidth() + " x " + size.getHeight();
+            mAvailableImageSizes[sizes.indexOf(size)] = size.getWidth() + " \u00D7 " + size.getHeight();
         }
     }
 
