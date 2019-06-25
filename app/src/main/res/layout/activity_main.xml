@@ -91,5 +91,17 @@
             app:layout_constraintTop_toBottomOf="@id/folderSelectionSpinner"
             app:srcCompat="@android:drawable/screen_background_light_transparent" />
 
+        <ImageButton
+            android:id="@+id/flashButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
+            android:backgroundTint="@android:color/transparent"
+            android:onClick="toggleFlash"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:srcCompat="@drawable/flash_off_icon" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

@@ -26,6 +26,7 @@ import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.Surface;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -33,10 +34,7 @@ import androidx.annotation.NonNull;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +68,7 @@ public class CameraService {
     private String mCameraId;
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
     private CameraCaptureSession mCaptureSession;
+    boolean mFlashSupported = false;
     private ImageReader mImageReader;
     private CaptureRequest mPreviewRequest;
     private Size mPreviewSize;
@@ -183,6 +182,9 @@ public class CameraService {
     void takePicture() {
         try {
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+            if (mFlashSupported && MainActivity.mFlashOn) {
+                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+            }
             mState = STATE_WAITING_LOCK;
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
@@ -268,6 +270,12 @@ public class CameraService {
                     textureView.setAspectRatio(mPreviewSize.getWidth(), mPreviewSize.getHeight());
                 } else {
                     textureView.setAspectRatio(mPreviewSize.getHeight(), mPreviewSize.getWidth());
+                }
+
+                Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                mFlashSupported = flashAvailable == null ? false : flashAvailable;
+                if (!mFlashSupported) {
+                    MainActivity.mFlashButton.setVisibility(View.GONE);
                 }
 
                 mCameraId = cameraId;

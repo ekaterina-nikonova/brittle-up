@@ -28,6 +28,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -84,6 +85,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private CameraService mCameraService;
     static DriveService mDriveService;
     private final Executor mExecutor = Executors.newSingleThreadExecutor();
+    static ImageButton mFlashButton;
+    static boolean mFlashOn;
     private GestureDetectorCompat mGestureDetector;
     private ArrayList<Folder> mFolders = new ArrayList<>();
     static Size mImageSize;
@@ -110,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mToolbar = findViewById(R.id.toolbar);
         mUploadIndicatorImageView = findViewById(R.id.uploadIndicatorImageView);
 
+        mFlashButton = findViewById(R.id.flashButton);
         mUploadButton = findViewById(R.id.uploadButton);
         mUploadButton.hide();
 
@@ -252,6 +256,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public void takePicture(View view) {
         mCameraService.takePicture();
+    }
+
+    public void toggleFlash(View view) {
+        mFlashOn = !mFlashOn;
+        if (mFlashOn) {
+            mFlashButton.setImageResource(R.drawable.flash_on_icon);
+        } else {
+            mFlashButton.setImageResource(R.drawable.flash_off_icon);
+        }
     }
 
     private void openCamera(int width, int height) {
